@@ -1,0 +1,55 @@
+---
+title: "Voting"
+author: "Rick Brown"
+date: "11/19/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(skimr)
+library(fs)
+
+```
+
+```{r}
+
+download.file("https://github.com/TheUpshot/2018-live-poll-results/archive/master.zip", 
+              destfile = "master.zip")
+
+unzip("master.zip")
+
+az2 <- read.csv("./2018-live-poll-results-master/data/elections-poll-az02-1.csv")
+
+
+# add col_types = cols(specsGoHere) if r throws a warning
+
+all <- read.csv("./2018-live-poll-results-master/data/")
+
+poll_list <- dir_ls(path = "./2018-live-poll-results-master/data")
+
+
+raw <- map_dfr(poll_list, ~ read_csv(.x, col_types = cols(
+                                                    .default = col_character(),
+                                                    turnout_scale = col_double(),
+                                                    turnout_score = col_double()
+)), .id = "source")
+
+x <- raw %>%
+  mutate(dvote = ifelse(response == "Dem", 1, 0)) %>%
+  mutate(female = ifelse(gender == "Female", 1, 0)) %>%
+  select(dvote, female, response, gender)
+
+
+lm(data = x, dvote ~ female)
+
+x %>%
+  ggplot(aes(x = female, y = dvote)) +
+  geom_jitter()
+
+
+file_delete("2018-live-poll-results-master/")
+```
+
